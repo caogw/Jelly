@@ -9,7 +9,7 @@ public class JdbcConfig {
     /**
      * 数据库地址
      */
-    public static final String DB_URL = "jdbc:mysql://123.206.72.175:3306/yim";
+    public static final String DB_URL = "jdbc:mysql://192.168.0.111/yim";
 
     /**
      * 数据库用户名
@@ -19,5 +19,5 @@ public class JdbcConfig {
     /**
      * 数据库密码
      */
-    public static final String DB_PASSWORD = "1044510273yhYH";
+    public static final String DB_PASSWORD = "skkj123";
 }
