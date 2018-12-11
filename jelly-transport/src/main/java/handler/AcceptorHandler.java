@@ -3,6 +3,9 @@ package handler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
+import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import org.apache.log4j.Logger;
 import protocol.MessageHolder;
 import protocol.ProtocolHeader;
@@ -20,6 +23,8 @@ public class AcceptorHandler extends ChannelInboundHandlerAdapter {
 
     private final BlockingQueue<MessageHolder> taskQueue;
 
+
+    private WebSocketServerHandshaker handshaker;
     public AcceptorHandler() {
         taskQueue = TaskQueue.getQueue();
     }
@@ -39,10 +44,29 @@ public class AcceptorHandler extends ChannelInboundHandlerAdapter {
                 // 繁忙响应
                 response(ctx.channel(), messageHolder.getSign());
             }
-        } else {
-            throw new IllegalArgumentException("msg is not instance of MessageHolder");
+        } else if(msg instanceof FullHttpRequest){
+            handleHttpRequest(ctx,(FullHttpRequest)msg);
+//            throw new IllegalArgumentException("msg is not instance of MessageHolder");
         }
     }
+
+    private void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest request) {
+        if (!request.decoderResult().isSuccess() || !"websocket".equals(request.headers().get("Upgrade"))) {
+            logger.warn("protobuf don't support websocket");
+            ctx.channel().close();
+            return;
+        }
+        WebSocketServerHandshakerFactory handshakerFactory = new WebSocketServerHandshakerFactory(
+                "ws://localhost:20000/websocket", null, true);
+        handshaker = handshakerFactory.newHandshaker(request);
+        if (handshaker == null) {
+            WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
+        } else {
+            // 动态加入websocket的编解码处理
+            handshaker.handshake(ctx.channel(), request);
+        }
+    }
+
 
     /**
      * 服务器繁忙响应
